@@ -33,7 +33,15 @@ class Udacidata
 
 	def self.find(id)
 		data = read_from_database
-		new attributes(data.first).zip(data.find { |row| row[0] == id }).to_h
+		values = data.find { |row| row[0] == id }
+		create_object(data.first, values)
+	end
+
+	def self.destroy(id)
+		data = read_from_database
+		values = data.delete(data.find { |row| row[0] == id })
+		write_to_database(data)
+		create_object(data.first, values)
 	end
 
 	#Internal:
@@ -46,16 +54,16 @@ class Udacidata
 		new attributes(headers).zip(values).to_h
 	end
 
-	def self.write_to_database(data)
-		CSV.open(DATA_FILE, 'wb') do |csv|
-			data.each { |row| csv << row }
-		end
-	end
-
 	def self.attributes(headers)
 		object_name_index = headers.index(to_s.downcase)
 		headers[object_name_index] = 'name' if object_name_index
 		headers.map(&:to_sym)
+	end
+
+	def self.write_to_database(data)
+		CSV.open(DATA_FILE, 'wb') do |csv|
+			data.each { |row| csv << row }
+		end
 	end
 
 	private_class_method :read_from_database, :write_to_database, :attributes
