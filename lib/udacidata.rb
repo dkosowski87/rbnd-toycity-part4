@@ -27,6 +27,11 @@ class Udacidata
 		n == 1 ? ud_data.first : ud_data		
 	end
 
+	def self.find(id)
+		data, attributes = upload_data
+		new attributes.zip(data.find { |row| row[0] == id }).to_h
+	end
+
 	#Internal:
 
 	def self.save(udacidata_object)
