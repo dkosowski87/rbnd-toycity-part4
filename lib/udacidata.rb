@@ -44,6 +44,16 @@ class Udacidata
 		create_object(data.first, values)
 	end
 
+	def self.where(options={})
+		data = read_from_database
+		headers = data.delete_at(0)
+		options.each do |attribute, value|
+			row_id = attributes(headers).index(attribute)
+			data.keep_if { |row| row[row_id] == value }
+		end 
+		data.map { |row| create_object(headers, row) }
+	end
+
 	#Internal:
 
 	def self.read_from_database
