@@ -54,6 +54,19 @@ class Udacidata
 		data.map { |row| create_object(headers, row) }
 	end
 
+	def update(options={})
+		data = self.class.read_from_database
+		values = data.find { |row| row[0] == id }
+		row_number = data.index(values)
+		options.each do |attribute, value|
+			row_id = self.class.attributes(data.first).index(attribute)
+			values[row_id] = value
+		end
+		data[row_number] = values
+		self.class.write_to_database(data)
+		self.class.create_object(data.first, values)
+	end
+
 	#Internal:
 
 	def self.read_from_database
@@ -75,7 +88,5 @@ class Udacidata
 			data.each { |row| csv << row }
 		end
 	end
-
-	private_class_method :read_from_database, :write_to_database, :attributes
 
 end
