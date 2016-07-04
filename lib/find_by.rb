@@ -12,6 +12,7 @@ class Module
   	end
   end
 
+  #Overriding the attr_reader method to also create finder methods for particular attributes.
   def attr_reader(*attributes)
     create_finder_methods *attributes
     attributes.each do |attribute|

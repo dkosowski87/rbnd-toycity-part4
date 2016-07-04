@@ -67,12 +67,14 @@ class Udacidata
 		self.class.create_object data.first, data[row_number] 
 	end
 
-	#INTERNAL HELPER METHODS
+	#HELPER METHODS
 
+	#Checks if record is in the database.
 	def self.new_record?(attributes)
 		!find(attributes[:id]) rescue true
 	end
 
+	#Saves the attributes of an object to the database, returning the object.
 	def self.save(attributes)
 		new_object, data = new(attributes), get_data
 		data << data.first.map { |field| new_object.send(field) }
@@ -80,20 +82,24 @@ class Udacidata
 		new_object
 	end
 
+	#Creates an object array, from an array of raw data.
 	def self.convert_to_objects(attribute_names, data)
 		data.map { |attribute_values| create_object(attribute_names, attribute_values) }
 	end
 
+	#Instantiates a new udacidata object with particular attributes.
 	def self.create_object(attribute_names, attribute_values)
 		new attribute_names.zip(attribute_values).to_h
 	end
 
-	#DATABASE API
+	#DATABASE METHODS
 
+	#Returns a data array with attributes as headers.
 	def self.get_data
 		modify_headers(read_from_database)
 	end
 
+	#Modifies the data array headers to align them with the objects attributes.
 	def self.modify_headers(data)
 		headers = data.delete_at(0)
 		object_name_index = headers.index(to_s.downcase)
