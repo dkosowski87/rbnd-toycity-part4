@@ -32,13 +32,16 @@ class Udacidata
 	def self.find(id)
 		data = get_data
 		attribute_values = data.find { |row| row[0] == id }
-		raise StandardError if attribute_values.nil?
+		raise UdacidataErrors::ProductNotFoundError,
+					"Product with id: #{id} was not found in database." if attribute_values.nil?
 		create_object data.delete_at(0), attribute_values
 	end
 
 	def self.destroy(id)
 		data = get_data
 		attribute_values = data.delete(data.find { |row| row[0] == id })
+		raise UdacidataErrors::ProductNotFoundError,
+				  "Product with id: #{id} was not found in database." if attribute_values.nil?
 		write_to_database(data)
 		create_object data.delete_at(0), attribute_values
 	end
