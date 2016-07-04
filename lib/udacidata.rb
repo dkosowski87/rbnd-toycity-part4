@@ -6,81 +6,100 @@ class Udacidata
 
 	DATA_FILE = File.dirname(__FILE__) + "/../data/data.csv"
 
-	def self.create(options={})
-		new_object = new(options)
-		data = read_from_database
-		data << attributes(data.first).map { |field| new_object.send(field) }
-		write_to_database(data)
-		return new_object
+	#MAIN METHODS
+
+	def self.create(attributes={})
+		new_record?(attributes) ? save(attributes) : find(attributes[:id])
 	end
 
 	def self.all
-		data = read_from_database
-		data.drop(1).map { |values| create_object(data.first, values) }
+		data = get_data
+		convert_to_objects data.delete_at(0), data
 	end	
 
 	def self.first(n=1)
-		data = read_from_database
-		ud_data = data.drop(1).first(n).map { |values| create_object(data.first, values) }
-		n == 1 ? ud_data.first : ud_data
+		data = get_data
+		data = convert_to_objects data.delete_at(0), data.first(n)
+		n == 1 ? data.first : data
 	end
 
 	def self.last(n=1)
-		data = read_from_database
-		ud_data = data.drop(1).last(n).map { |values| create_object(data.first, values) }
-		n == 1 ? ud_data.first : ud_data		
+		data = get_data
+		data = convert_to_objects data.delete_at(0), data.last(n)
+		n == 1 ? data.first : data		
 	end
 
 	def self.find(id)
-		data = read_from_database
-		values = data.find { |row| row[0] == id }
-		create_object(data.first, values)
+		data = get_data
+		attribute_values = data.find { |row| row[0] == id }
+		raise StandardError if attribute_values.nil?
+		create_object data.delete_at(0), attribute_values
 	end
 
 	def self.destroy(id)
-		data = read_from_database
-		values = data.delete(data.find { |row| row[0] == id })
+		data = get_data
+		attribute_values = data.delete(data.find { |row| row[0] == id })
 		write_to_database(data)
-		create_object(data.first, values)
+		create_object data.delete_at(0), attribute_values
 	end
 
-	def self.where(options={})
-		data = read_from_database
+	def self.where(attributes={})
+		data = get_data
 		headers = data.delete_at(0)
-		options.each do |attribute, value|
-			row_id = attributes(headers).index(attribute)
-			data.keep_if { |row| row[row_id] == value }
+		attributes.each do |attribute_name, attribute_value|
+			column_number = headers.index(attribute_name)
+			data.keep_if { |row| row[column_number] == attribute_value }
 		end 
-		data.map { |row| create_object(headers, row) }
+		convert_to_objects headers, data
 	end
 
-	def update(options={})
-		data = self.class.read_from_database
-		values = data.find { |row| row[0] == id }
-		row_number = data.index(values)
-		options.each do |attribute, value|
-			row_id = self.class.attributes(data.first).index(attribute)
-			values[row_id] = value
+	def update(attributes={})
+		data = Udacidata.send(:get_data)
+		row_number = data.index(data.find { |row| row[0] == id })
+		attributes.each do |attribute_name, attribute_value|
+			column_number = data.first.index(attribute_name)
+			data[row_number][column_number] = attribute_value
 		end
-		data[row_number] = values
-		self.class.write_to_database(data)
-		self.class.create_object(data.first, values)
+		Udacidata.send(:write_to_database, data)
+		self.class.create_object data.first, data[row_number] 
 	end
 
-	#Internal:
+	#INTERNAL HELPER METHODS
 
-	def self.read_from_database
-		CSV.read(DATA_FILE, {converters: :float})
+	def self.new_record?(attributes)
+		!find(attributes[:id]) rescue true
 	end
 
-	def self.create_object(headers, values)
-		new attributes(headers).zip(values).to_h
+	def self.save(attributes)
+		new_object, data = new(attributes), get_data
+		data << data.first.map { |field| new_object.send(field) }
+		write_to_database(data)
+		new_object
 	end
 
-	def self.attributes(headers)
+	def self.convert_to_objects(attribute_names, data)
+		data.map { |attribute_values| create_object(attribute_names, attribute_values) }
+	end
+
+	def self.create_object(attribute_names, attribute_values)
+		new attribute_names.zip(attribute_values).to_h
+	end
+
+	#DATABASE API
+
+	def self.get_data
+		modify_headers(read_from_database)
+	end
+
+	def self.modify_headers(data)
+		headers = data.delete_at(0)
 		object_name_index = headers.index(to_s.downcase)
 		headers[object_name_index] = 'name' if object_name_index
-		headers.map(&:to_sym)
+		data.unshift headers.map(&:to_sym)
+	end
+
+	def self.read_from_database
+		CSV.read(DATA_FILE, {converters: :numeric})
 	end
 
 	def self.write_to_database(data)
@@ -88,5 +107,7 @@ class Udacidata
 			data.each { |row| csv << row }
 		end
 	end
+
+	private_class_method :get_data, :modify_headers, :read_from_database, :write_to_database
 
 end
